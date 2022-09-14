@@ -10,3 +10,10 @@ credit_data = np.genfromtxt(
     'credit.txt', delimiter=',', skip_header=True)
 
 print(credit_data)
+
+# TODO: Write tree_grow(x, y, nmin, minleaf, nfeat) function
+# TODO: Write tree_pred function
+
+# Bagging
+# TODO: Write tree_grow_b function
+# TODO: Write tree_pred_b function
