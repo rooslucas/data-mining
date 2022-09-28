@@ -87,6 +87,7 @@ def best_split(x, y, features):
     # loop through each feature and find the feature which provides highest information gain
     best_gain = 0
     split_feature = None
+    best_split = None
 
     # need to make compatible for categorical attributes
     for feature in features:
@@ -179,4 +180,47 @@ def tree_pred(x, tr):
 # TODO: Write tree_grow_b(x, y, nmin, minleaf, nfeat, m) function
 
 
+def bootstrap(X, Y, n_bootstraps):
+    bootstrap_indices = np.random.randint(
+        low=0, high=len(X), size=n_bootstraps)
+    df_bootstrapped_x = X[bootstrap_indices]
+    df_bootstrapped_y = Y[bootstrap_indices]
+
+    return df_bootstrapped_x, df_bootstrapped_y
+
+
+def most_common_label(y):
+    counter = Counter(y)
+    most_common = counter.most_common(1)[0][0]
+    return most_common
+
+
+class RandomForest:
+
+    # def __init__(self):
+    #     self.trees = []
+
+    def tree_grow_b(self, x, y, nmin, minleaf, nfeat, m):
+        trees = []
+        for i in range(m):
+            x, y = bootstrap(x, y, len(x))
+            tree = tree_grow(x, y,
+                             nmin=nmin, minleaf=minleaf, nfeat=nfeat)
+            trees.append(tree)
+
+        return trees
+
+        # bootstrap
+
+        # for loop (for tree in n_trees) trekken bootstrap sample en daarmee boom trainen en de getrainde boom opslaan in self.trees
+
 # TODO: Write tree_pred_b(m, x) function
+
+    def tree_pred_b(self, m, x):
+        tree_preds = np.array([])
+        # [1111 0000 1111] array of array's of predictions per tree
+        # [101 101 101 101] convert to corresponding predictions per tree
+        # tree_preds = np.swapaxes(tree_preds, 0, 1)
+        # 101 101 101 --> 111
+        y_preds = [most_common_label(tree_pred) for tree_pred in tree_preds]
+        return np.array(y_preds)
