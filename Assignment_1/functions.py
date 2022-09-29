@@ -5,6 +5,7 @@
 
 # Part 1: Programming
 
+from os import major
 import pandas as pd
 import random
 from anytree import Node, RenderTree
@@ -14,7 +15,7 @@ import numpy as np
 
 def tree_grow(x, y, nmin, minleaf, nfeat):
     # separate function so that the parameters of this function stay the same
-    return build_tree(Node("root", parent=None, question=None), x, y, nmin, minleaf, nfeat)
+    return build_tree(Node("root", parent=None, question=Question(None, None, None)), x, y, nmin, minleaf, nfeat)
 
 
 def build_tree(node, x, y, nmin, minleaf, nfeat):
@@ -174,7 +175,7 @@ def tree_pred(x, tr):
     features = range(x.shape[1])
     for row in x:
         y.append(get_decision(row, tr, features))
-    return y
+    return np.array(y)
 
 # Bagging
 # TODO: Write tree_grow_b(x, y, nmin, minleaf, nfeat, m) function
@@ -216,11 +217,17 @@ class RandomForest:
 
 # TODO: Write tree_pred_b(m, x) function
 
-    def tree_pred_b(self, m, x):
-        tree_preds = np.array([])
-        # [1111 0000 1111] array of array's of predictions per tree
-        # [101 101 101 101] convert to corresponding predictions per tree
-        # tree_preds = np.swapaxes(tree_preds, 0, 1)
-        # 101 101 101 --> 111
-        y_preds = [most_common_label(tree_pred) for tree_pred in tree_preds]
-        return np.array(y_preds)
+    def tree_pred_b(self, trees, x):
+        tree_preds = np.empty((0, len(x)))
+        predictions = []
+
+        for tree in trees:
+            tree_preds = np.append(
+                tree_preds, [tree_pred(x, tree)], axis=0)
+
+        for i in range(len(tree_preds)):
+            tree_preds = np.transpose(tree_preds)
+            majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
+            predictions.append(majority_vote)
+
+        return predictions
