@@ -9,12 +9,11 @@ x = credit_data[:, 0: credit_data.shape[1] - 1]
 y = credit_data[:, credit_data.shape[1] - 1]
 y = np.reshape(y, (len(y), 1))
 # checked to see if the same as slides. It is the same, only leaf nodes are duplicated (i.e. parent of leaf == leaf). Probably good to fix.
-tree = tree_grow(x, y, 2, 1, x.shape[1])
+tree = tree_grow(x, y, 2, 1, 8)
 print(RenderTree(tree))
 print(tree_pred(x, tree))
-forest = RandomForest()
-trees = forest.tree_grow_b(x, y, 15, 5, 41, m=5)
+trees = tree_grow_b(x=x, y=y, nmin=2, minleaf=3, nfeat=8, m=5)
 print(trees)
-print(forest.tree_pred_b(trees, x))
+print(tree_pred_b(trees, x))
 # print(x)
 # print(y)

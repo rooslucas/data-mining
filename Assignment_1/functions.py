@@ -160,13 +160,6 @@ class Question:  # inspired by this tutorial: https://github.com/random-forests/
         # don't need to worry about non-numerical values, so this is fine
         return val >= self.value
 
-# TODO: Write tree_grow(x, y, nmin, minleaf, nfeat) function
-
-
-def tree_grow(x, y, nmin, minleaf, nfeat):
-    # separate function so that the parameters of this function stay the same
-    return build_tree(Node("root", parent=None, question=None), x, y, nmin, minleaf, nfeat)
-
 
 # TODO: Write tree_pred function
 
@@ -190,44 +183,33 @@ def bootstrap(X, Y, n_bootstraps):
     return df_bootstrapped_x, df_bootstrapped_y
 
 
-def most_common_label(y):
-    counter = Counter(y)
-    most_common = counter.most_common(1)[0][0]
-    return most_common
+def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
+    trees = []
+    for i in range(m):
+        x, y = bootstrap(x, y, len(x))
+        tree = tree_grow(x, y, nmin=nmin, minleaf=minleaf, nfeat=nfeat)
+        trees.append(tree)
 
+    return trees
 
-class RandomForest:
+    # bootstrap
 
-    # def __init__(self):
-    #     self.trees = []
-
-    def tree_grow_b(self, x, y, nmin, minleaf, nfeat, m):
-        trees = []
-        for i in range(m):
-            x, y = bootstrap(x, y, len(x))
-            tree = tree_grow(x, y,
-                             nmin=nmin, minleaf=minleaf, nfeat=nfeat)
-            trees.append(tree)
-
-        return trees
-
-        # bootstrap
-
-        # for loop (for tree in n_trees) trekken bootstrap sample en daarmee boom trainen en de getrainde boom opslaan in self.trees
+    # for loop (for tree in n_trees) trekken bootstrap sample en daarmee boom trainen en de getrainde boom opslaan in self.trees
 
 # TODO: Write tree_pred_b(m, x) function
 
-    def tree_pred_b(self, trees, x):
-        tree_preds = np.empty((0, len(x)))
-        predictions = []
 
-        for tree in trees:
-            tree_preds = np.append(
-                tree_preds, [tree_pred(x, tree)], axis=0)
+def tree_pred_b(trees, x):
+    tree_preds = np.empty((0, len(x)))
+    predictions = []
 
-        for i in range(len(tree_preds)):
-            tree_preds = np.transpose(tree_preds)
-            majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
-            predictions.append(majority_vote)
+    for tree in trees:
+        tree_preds = np.append(tree_preds, [tree_pred(x, tree)], axis=0)
 
-        return predictions
+    tree_preds = np.transpose(tree_preds)
+
+    for i in range(len(tree_preds)):
+        majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
+        predictions.append(majority_vote)
+
+    return predictions
