@@ -5,6 +5,7 @@
 
 # Part 1: Programming
 
+# Import necessary libraries
 from os import major
 import pandas as pd
 import random
@@ -12,204 +13,259 @@ from anytree import Node, RenderTree
 from collections import Counter
 import numpy as np
 
+# Single Decision Tree Functions
+
+# Create a single DT
+
 
 def tree_grow(x, y, nmin, minleaf, nfeat):
-    # separate function so that the parameters of this function stay the same
+    # Call build_tree so parameters resemble assignment
     return build_tree(Node("root", parent=None, question=Question(None, None, None)), x, y, nmin, minleaf, nfeat)
+
+# The real building
 
 
 def build_tree(node, x, y, nmin, minleaf, nfeat):
 
-    # base case: stop if node is pure
+    # Base Case: stop expanding if node is pure
     if impurity(y) == 0:
-        # get final class value, should be the same for all y in Y as node is pure
+        # Get final class value, should be the same for all y in Y as node is pure
         node.question.label = y[0][0]
-        # not sure if this will duplicate the same node and can't access the parent nodes to change them
+
+        # TODO: Not sure if this will duplicate the same node and can't access the parent nodes to change them
         leaf = Node("leaf", parent=node, question=node.question)
         node.children = [leaf]
         return node
 
+    # Get a sample of features when nfeat is not equal to all features
     if nfeat < x.shape[1]:
-        # split is determined based on nfeat number of features
         features = random.sample(range(x.shape[1]), nfeat)
 
+    # Features are all features
     else:
-        features = range(0, x.shape[1]-1)  # -1 right?
+        features = range(0, x.shape[1]-1)
 
+    # Get best split for x and y values given feature set
     split, feature = best_split(x, y, features)
-    # split into left and right hand sides and then build tree for both
+
+    # Split into left and right hand of tree and expand for both sides
     lhs_x, lhs_y, rhs_x, rhs_y, question = partition(feature, split, x, y)
 
-    lhs_y = np.reshape(lhs_y, (lhs_y.shape[0], 1))
-    rhs_y = np.reshape(rhs_y, (rhs_y.shape[0], 1))
+    lhs_y = np.reshape(lhs_y, (lhs_y.shape[0], 1))  # Reshape to fit the format
+    rhs_y = np.reshape(rhs_y, (rhs_y.shape[0], 1))  # Reshape to fit the format
 
-    # early stopping criteria
-
-    # make sure len corresponds to number of instances
+    # Early Stopping Criteria:
+    # Check if length x corresponds to minimal number of instances
     if (len(x) < nmin) or (len(lhs_x) < minleaf) or (len(rhs_x) < minleaf):
-        # doesnt work with Counter otherwise
-        y_temp = np.reshape(y, (y.shape[0],))
+        y_temp = np.reshape(y, (y.shape[0],))  # Reshape to fit counter
         majority_class = Counter(y_temp.tolist()).most_common(1)[0][0]
+
+        # Create label and make leaf
         question.label = majority_class
         leaf = Node("leaf", parent=node, question=question)
         node.children = [leaf]
         node.question = question
+
         return node
 
+    # Expand left and right side of tree using recursion
     node_lhs = build_tree(Node("lhs", parent=node, question=question),
-                          lhs_x, lhs_y, nmin, minleaf, nfeat)  # expand left side of tree
+                          lhs_x, lhs_y, nmin, minleaf, nfeat)
     node_rhs = build_tree(Node("rhs", parent=node, question=question),
-                          rhs_x, rhs_y, nmin, minleaf, nfeat)  # expand right side of tree
+                          rhs_x, rhs_y, nmin, minleaf, nfeat)
 
     node.children = [node_lhs, node_rhs]
     node.question = question
 
+    # When finished building, return node
     return node
 
 
-def impurity(y):  # gini-index
+# Calculte impurity using Gini-Index
+def impurity(y):
     if len(y) > 0:
         prob1 = sum(y) / len(y)
         prob2 = 1 - prob1
         return prob1*prob2
+
     else:
         return 0
 
 
+# Calculate impurity reduction for a node
 def impurity_reduction(y, lh, rh):
     propl = len(lh) / len(y)
     propr = len(rh) / len(y)
     imp = impurity(y)
     reduction = imp - ((propl * impurity(lh)) + (propr * impurity(rh)))
+
     return reduction
+
+# Find the split which provides highest information gain
 
 
 def best_split(x, y, features):
-    # loop through each feature and find the feature which provides highest information gain
+    # Set default values
     best_gain = 0
     split_feature = None
     best_split = None
 
-    # need to make compatible for categorical attributes
+    # TODO: need to make compatible for categorical attributes
+    # Loop through all features to define the best feature to split on
     for feature in features:
         column = x[:, feature]
         x_sorted = np.sort(np.unique(column))
+
+        # Define the splitpoints
         splitpoints = (x_sorted[0:(len(x_sorted)-1)] +
                        x_sorted[1:len(x_sorted)])/2
+
+        # Calculate the gain for each split point
         for splitpoint in splitpoints:
             lh = y[column < splitpoint]
             rh = y[column >= splitpoint]
             gain = impurity_reduction(y, lh, rh)
+
+            # Review the best gain
             if gain > best_gain:
                 best_gain = gain
                 best_split = splitpoint
                 split_feature = feature
 
+    # Return the value and feature for the best split
     return best_split, split_feature
 
 
-def partition(feature, split, x, y):  # partition based on feature. How to ask the question?
-
+# Partition based on given feature and split value
+def partition(feature, split, x, y):
     question = Question(feature, split)
-    x = np.concatenate((x, y), axis=1)  # easier to get labels for rhs and lhs
-    # given numeric values, need to add for str values as well
+    x = np.concatenate((x, y), axis=1)  # Easier to get labels for rhs and lhs
+
+    # TODO: given numeric values, need to add for str values as well
+    # Define right and left side of the tree
     lhs = np.array([instance for instance in x if instance[feature] < split])
     rhs = np.array([instance for instance in x if instance[feature] >= split])
     columns = x.shape[1]-1
 
+    # Return right and left side
     return lhs[:, 0: columns], lhs[:, columns], rhs[:, 0: columns], rhs[:, columns], question
 
-# https://www.youtube.com/watch?v=LDRbO9a6XPU
+# TODO: add documentation https://www.youtube.com/watch?v=LDRbO9a6XPU
+
+# Get child of a node
 
 
 def get_child(node, child_name):
-
+    # If node is a leaf, return node
     for child in node.children:
         if (child.name == child_name) or (child.name == "leaf"):
             return child
 
 
+# Get the final class for a leaf node
 def get_decision(row, tr, features):
-    # need to loop through each feature to see which one matches the current node
     decision = None
 
+    # Loop through each feature to see which one matches the current node
     while True:
-        for feat in features:  # match feature with child feature
+        # Check if root node is leaf node
+        if tr.question.feature == None:
+            return tr.question.label
+
+        # Match feature with child feature
+        for feat in features:
             if (tr.question.feature == feat):
-                # if feature value >= value in question, get rhs and lhs otherwise
+                # If feature value >= value in question, get right hand of tree
                 if (tr.question.answer(row)):
                     tr = get_child(tr, "rhs")
+
+                # Otherwise get left hand of tree
                 else:
                     tr = get_child(tr, "lhs")
 
+            # Check for leaf node and return correct class
             if tr.name == "leaf":
                 decision = tr.question.label
                 return int(decision)
 
 
-class Question:  # inspired by this tutorial: https://github.com/random-forests/tutorials/blob/master/decision_tree.ipynb
+# Create a class to safe questions
+class Question:  # TODO: documentation inspired by this tutorial: https://github.com/random-forests/tutorials/blob/master/decision_tree.ipynb
 
     def __init__(self, feature, value, label=None):
-        # I want to make it so that we can match features of both examples and the question
+        # Question stores the feature, value and label of a node
         self.feature = feature
-        self.value = value  # this value is the right hand side of the boolean, the left hand side is the feature value of the example
+        self.value = value  # TODO: this value is the right hand side of the boolean, the left hand side is the feature value of the example
         self.label = label
 
     def answer(self, instance):
         val = instance[self.feature]
-        # don't need to worry about non-numerical values, so this is fine
+
+        # Return whether value is bigger than split value or not
         return val >= self.value
 
 
-# TODO: Write tree_pred function
-
+# Predict labels for x-values given a single decision tree
 def tree_pred(x, tr):
-    y = []
-    features = range(x.shape[1])
-    for row in x:
-        y.append(get_decision(row, tr, features))
-    return np.array(y)
+    predicted_y = []  # Safe predictions here
+    features = range(x.shape[1])  # Define features index
 
-# Bagging
-# TODO: Write tree_grow_b(x, y, nmin, minleaf, nfeat, m) function
+    # Predict for each x
+    for row in x:
+        # Get class from the tree
+        predicted_y.append(get_decision(row, tr, features))
+
+    # Return array with predictions
+    return np.array(predicted_y)
+
+# Multiple Decision Trees Functions
+
+# Get a bootstrap sample from the data
 
 
 def bootstrap(X, Y, n_bootstraps):
+    # Get random sample with replacement
     bootstrap_indices = np.random.randint(
         low=0, high=len(X), size=n_bootstraps)
     df_bootstrapped_x = X[bootstrap_indices]
     df_bootstrapped_y = Y[bootstrap_indices]
 
+    # Return the bootstrapped x and y values
     return df_bootstrapped_x, df_bootstrapped_y
 
 
+# Grow a forest of decision trees
 def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
-    trees = []
-    for i in range(m):
-        x, y = bootstrap(x, y, len(x))
-        tree = tree_grow(x, y, nmin=nmin, minleaf=minleaf, nfeat=nfeat)
-        trees.append(tree)
+    trees = []  # Safe the trees in here
 
+    # Create m trees
+    for i in range(m):
+        x, y = bootstrap(x, y, len(x))  # Get bootstrapped sample
+        tree = tree_grow(x, y, nmin=nmin, minleaf=minleaf,
+                         nfeat=nfeat)  # Grow the single tree
+        trees.append(tree)  # Safe it to the forest
+
+    # Return the forest
     return trees
 
-    # bootstrap
 
-    # for loop (for tree in n_trees) trekken bootstrap sample en daarmee boom trainen en de getrainde boom opslaan in self.trees
-
-# TODO: Write tree_pred_b(m, x) function
-
-
-def tree_pred_b(trees, x):
+# Make prediction for y values from the forest
+def tree_pred_b(x, trees):
+    # Create variables to safe the predictions
     tree_preds = np.empty((0, len(x)))
     predictions = []
 
+    # For each tree in the forest, make predictions for y values
     for tree in trees:
         tree_preds = np.append(tree_preds, [tree_pred(x, tree)], axis=0)
 
+    # Transpose the predictions to get majority vote
     tree_preds = np.transpose(tree_preds)
 
+    # Calculate majority vote over all trees for each x value
     for i in range(len(tree_preds)):
         majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
-        predictions.append(majority_vote)
+        predictions.append(majority_vote)  # Safe those votes
 
+    # Return final predictions of all trees in the forest
     return predictions
