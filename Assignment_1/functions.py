@@ -150,9 +150,8 @@ def impurity_reduction(y, lh, rh):
 
     return reduction
 
+
 # Find the split which provides highest information gain
-
-
 def best_split(x, y, features):
     # Set default values
     best_gain = 0
