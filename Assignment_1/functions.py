@@ -1,26 +1,77 @@
 # Assignment 1 ~ Classification Trees, Bagging and Random Forest
 # Rosalie Lucas 6540384
-# Michael Pieke
-# Mick Richters
+# Michael Pieke 8474752
+# Mick Richters 6545572
 
 # Part 1: Programming
 
 # Import necessary libraries
-from os import major
 import pandas as pd
 import random
 from anytree import Node, RenderTree
 from collections import Counter
 import numpy as np
 
-# Single Decision Tree Functions
+#################################################### MAIN FUNCTIONS ###########################################################
+
 
 # Create a single DT
-
-
 def tree_grow(x, y, nmin, minleaf, nfeat):
-    # Call build_tree so parameters resemble assignment
+    # build_tree is used as auxiliary function in order for tree_grow to have the same paramaters as in the assignment
     return build_tree(Node("root", parent=None, question=Question(None, None, None)), x, y, nmin, minleaf, nfeat)
+
+# Predict labels for x-values given a single decision tree
+
+
+def tree_pred(x, tr):
+    predicted_y = []  # Safe predictions here
+    features = range(x.shape[1])  # Define features index
+
+    # Predict for each x
+    for row in x:
+        # Get class from the tree
+        predicted_y.append(get_decision(row, tr, features))
+
+    # Return array with predictions
+    return np.array(predicted_y)
+
+# Grow a forest of decision trees
+
+
+def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
+    # Create forest of m trees
+    forest = []  # Safe the trees in here
+    for i in range(m):
+        x, y = bootstrap(x, y, len(x))  # Get bootstrapped sample
+        tree = tree_grow(x, y, nmin=nmin, minleaf=minleaf,
+                         nfeat=nfeat)  # Grow a single tree based on bootstrapped sample
+        forest.append(tree)
+
+    return forest
+
+
+# Make prediction for y values from the forest
+def tree_pred_b(x, forest):
+    # Create variables to safe the predictions
+    tree_preds = np.empty((0, len(x)))
+    predictions = []
+
+    # For each tree in the forest, make predictions for y values
+    for tree in forest:
+        tree_preds = np.append(tree_preds, [tree_pred(x, tree)], axis=0)
+
+    # Transpose the predictions to get majority vote
+    tree_preds = np.transpose(tree_preds)
+
+    # Calculate majority vote over all trees for each x value (with binary data, majority vote == average value)
+    for i in range(len(tree_preds)):
+        majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
+        # Final predictions of the random forest
+        predictions.append(majority_vote)
+
+    return predictions
+
+################################################ AUXILIARY FUNCTIONS FOR TREE_GROW ###########################################################
 
 # The real building
 
@@ -29,7 +80,7 @@ def build_tree(node, x, y, nmin, minleaf, nfeat):
 
     # Base Case: stop expanding if node is pure
     if impurity(y) == 0:
-        # Get final class value, should be the same for all y in Y as node is pure
+        # Get final class value, should be the same for all y in Y as node is pure. Hence, we can select the first element of y.
         node.question.label = y[0][0]
 
         # TODO: Not sure if this will duplicate the same node and can't access the parent nodes to change them
@@ -37,30 +88,27 @@ def build_tree(node, x, y, nmin, minleaf, nfeat):
         node.children = [leaf]
         return node
 
-    # Get a sample of features when nfeat is not equal to all features
-    if nfeat < x.shape[1]:
+    if nfeat < x.shape[1]:  # get random subset of features of size nfeat
         features = random.sample(range(x.shape[1]), nfeat)
 
-    # Features are all features
-    else:
+    else:  # Use all features
         features = range(0, x.shape[1]-1)
 
-    # Get best split for x and y values given feature set
+    # Return the best value to split on as well as the corresponding feature (column index)
     split, feature = best_split(x, y, features)
 
-    # Split into left and right hand of tree and expand for both sides
+    # Partition the data according to the best_split
     lhs_x, lhs_y, rhs_x, rhs_y, question = partition(feature, split, x, y)
 
     lhs_y = np.reshape(lhs_y, (lhs_y.shape[0], 1))  # Reshape to fit the format
     rhs_y = np.reshape(rhs_y, (rhs_y.shape[0], 1))  # Reshape to fit the format
 
-    # Early Stopping Criteria:
-    # Check if length x corresponds to minimal number of instances
+    # Early Stopping Criteria (as provided in the assignment)
     if (len(x) < nmin) or (len(lhs_x) < minleaf) or (len(rhs_x) < minleaf):
         y_temp = np.reshape(y, (y.shape[0],))  # Reshape to fit counter
         majority_class = Counter(y_temp.tolist()).most_common(1)[0][0]
 
-        # Create label and make leaf
+        # Create leaf node with majority class label
         question.label = majority_class
         leaf = Node("leaf", parent=node, question=question)
         node.children = [leaf]
@@ -81,7 +129,7 @@ def build_tree(node, x, y, nmin, minleaf, nfeat):
     return node
 
 
-# Calculte impurity using Gini-Index
+# Calculate impurity using Gini-Index
 def impurity(y):
     if len(y) > 0:
         prob1 = sum(y) / len(y)
@@ -110,7 +158,6 @@ def best_split(x, y, features):
     split_feature = None
     best_split = None
 
-    # TODO: need to make compatible for categorical attributes
     # Loop through all features to define the best feature to split on
     for feature in features:
         column = x[:, feature]
@@ -120,7 +167,7 @@ def best_split(x, y, features):
         splitpoints = (x_sorted[0:(len(x_sorted)-1)] +
                        x_sorted[1:len(x_sorted)])/2
 
-        # Calculate the gain for each split point
+        # Calculate the impurity reduction for each split point
         for splitpoint in splitpoints:
             lh = y[column < splitpoint]
             rh = y[column >= splitpoint]
@@ -139,28 +186,21 @@ def best_split(x, y, features):
 # Partition based on given feature and split value
 def partition(feature, split, x, y):
     question = Question(feature, split)
-    x = np.concatenate((x, y), axis=1)  # Easier to get labels for rhs and lhs
+    # Easier to get correct labels for split data
+    x = np.concatenate((x, y), axis=1)
 
-    # TODO: given numeric values, need to add for str values as well
-    # Define right and left side of the tree
+    # Split data into left and right hand sides
     lhs = np.array([instance for instance in x if instance[feature] < split])
     rhs = np.array([instance for instance in x if instance[feature] >= split])
     columns = x.shape[1]-1
 
-    # Return right and left side
+    # Return right and left side x and y values to use for next iteration of build_tree function
     return lhs[:, 0: columns], lhs[:, columns], rhs[:, 0: columns], rhs[:, columns], question
 
 # TODO: add documentation https://www.youtube.com/watch?v=LDRbO9a6XPU
 
-# Get child of a node
 
-
-def get_child(node, child_name):
-    # If node is a leaf, return node
-    for child in node.children:
-        if (child.name == child_name) or (child.name == "leaf"):
-            return child
-
+#################################################### AUXILIARY FUNCTIONS FOR TREE_PRED ###########################################################
 
 # Get the final class for a leaf node
 def get_decision(row, tr, features):
@@ -188,8 +228,17 @@ def get_decision(row, tr, features):
                 decision = tr.question.label
                 return int(decision)
 
+# Get child of a node
 
-# Create a class to safe questions
+
+def get_child(node, child_name):
+    # If node is a leaf, return node
+    for child in node.children:
+        if (child.name == child_name) or (child.name == "leaf"):
+            return child
+
+
+# Auxiliary class to store information based on which the data was split at each iteration of build_tree
 class Question:  # TODO: documentation inspired by this tutorial: https://github.com/random-forests/tutorials/blob/master/decision_tree.ipynb
 
     def __init__(self, feature, value, label=None):
@@ -205,24 +254,10 @@ class Question:  # TODO: documentation inspired by this tutorial: https://github
         return val >= self.value
 
 
-# Predict labels for x-values given a single decision tree
-def tree_pred(x, tr):
-    predicted_y = []  # Safe predictions here
-    features = range(x.shape[1])  # Define features index
+################################################ AUXILIARY FUNCTION FOR RANDOM FOREST ###########################################################
 
-    # Predict for each x
-    for row in x:
-        # Get class from the tree
-        predicted_y.append(get_decision(row, tr, features))
-
-    # Return array with predictions
-    return np.array(predicted_y)
-
-# Multiple Decision Trees Functions
 
 # Get a bootstrap sample from the data
-
-
 def bootstrap(X, Y, n_bootstraps):
     # Get random sample with replacement
     bootstrap_indices = np.random.randint(
@@ -232,40 +267,3 @@ def bootstrap(X, Y, n_bootstraps):
 
     # Return the bootstrapped x and y values
     return df_bootstrapped_x, df_bootstrapped_y
-
-
-# Grow a forest of decision trees
-def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
-    trees = []  # Safe the trees in here
-
-    # Create m trees
-    for i in range(m):
-        x, y = bootstrap(x, y, len(x))  # Get bootstrapped sample
-        tree = tree_grow(x, y, nmin=nmin, minleaf=minleaf,
-                         nfeat=nfeat)  # Grow the single tree
-        trees.append(tree)  # Safe it to the forest
-
-    # Return the forest
-    return trees
-
-
-# Make prediction for y values from the forest
-def tree_pred_b(x, trees):
-    # Create variables to safe the predictions
-    tree_preds = np.empty((0, len(x)))
-    predictions = []
-
-    # For each tree in the forest, make predictions for y values
-    for tree in trees:
-        tree_preds = np.append(tree_preds, [tree_pred(x, tree)], axis=0)
-
-    # Transpose the predictions to get majority vote
-    tree_preds = np.transpose(tree_preds)
-
-    # Calculate majority vote over all trees for each x value
-    for i in range(len(tree_preds)):
-        majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
-        predictions.append(majority_vote)  # Safe those votes
-
-    # Return final predictions of all trees in the forest
-    return predictions

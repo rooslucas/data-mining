@@ -3,8 +3,7 @@ from symbol import for_stmt
 import numpy as np
 from functions import *
 from sklearn.model_selection import train_test_split
-credit_data = np.genfromtxt(
-    'Assignment_1/pima.txt', delimiter=',', skip_header=True)
+credit_data = np.genfromtxt('pima.txt', delimiter=',', skip_header=True)
 
 x = credit_data[:, 0: credit_data.shape[1] - 1]
 y = credit_data[:, credit_data.shape[1] - 1]
