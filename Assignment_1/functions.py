@@ -82,13 +82,14 @@ def build_tree(node, x, y, nmin, minleaf, nfeat):
     if impurity(y) == 0:
         # Get final class value, should be the same for all y in Y as node is pure. Hence, we can select the first element of y.
         node.question.label = y[0][0]
+        # node.name = "leaf"
 
-        # TODO: Not sure if this will duplicate the same node and can't access the parent nodes to change them
+        # TODO: Not sure if this will duplicate the same node and can't access thems parent nodes to change them
         leaf = Node("leaf", parent=node, question=node.question)
         node.children = [leaf]
         return node
 
-    if nfeat < x.shape[1]:  # get random subset of features of size nfeat
+    if nfeat < x.shape[1]:  # Get random subset of features of size nfeat
         features = random.sample(range(x.shape[1]), nfeat)
 
     else:  # Use all features
@@ -155,8 +156,14 @@ def impurity_reduction(y, lh, rh):
 def best_split(x, y, features):
     # Set default values
     best_gain = 0
-    split_feature = None
-    best_split = None
+    split_feature = random.choice(features)
+    x_sorted = np.sort(np.unique(x[:, split_feature]))
+
+    if len(x_sorted) > 1:
+        best_split = random.choice((x_sorted[0:(len(x_sorted)-1)] +
+                                    x_sorted[1:len(x_sorted)])/2)
+    else:
+        best_split = x_sorted[0]
 
     # Loop through all features to define the best feature to split on
     for feature in features:
@@ -195,7 +202,10 @@ def partition(feature, split, x, y):
     columns = x.shape[1]-1
 
     # Return right and left side x and y values to use for next iteration of build_tree function
-    return lhs[:, 0: columns], lhs[:, columns], rhs[:, 0: columns], rhs[:, columns], question
+    if len(rhs) == 0:
+        return lhs[:, 0: columns], lhs[:, columns], rhs, rhs, question
+    else:
+        return lhs[:, 0: columns], lhs[:, columns], rhs[:, 0: columns], rhs[:, columns], question
 
 # TODO: add documentation https://www.youtube.com/watch?v=LDRbO9a6XPU
 
@@ -214,6 +224,11 @@ def get_decision(row, tr, features):
 
         # Match feature with child feature
         for feat in features:
+            # Check for leaf node and return correct class
+            if tr.name == "leaf":
+                decision = tr.question.label
+                return int(decision)
+
             if (tr.question.feature == feat):
                 # If feature value >= value in question, get right hand of tree
                 if (tr.question.answer(row)):
@@ -222,11 +237,6 @@ def get_decision(row, tr, features):
                 # Otherwise get left hand of tree
                 else:
                     tr = get_child(tr, "lhs")
-
-            # Check for leaf node and return correct class
-            if tr.name == "leaf":
-                decision = tr.question.label
-                return int(decision)
 
 # Get child of a node
 
