@@ -1,5 +1,5 @@
-
 # Assignment 1 ~ Classification Trees, Bagging and Random Forest
+
 # Rosalie Lucas 6540384
 # Michael Pieke 8474752
 # Mick Richters 6545572
@@ -13,8 +13,7 @@ from anytree import Node, RenderTree
 from collections import Counter
 import numpy as np
 
-random.seed(12)
-np.random.seed(42)
+
 #################################################### MAIN FUNCTIONS ###########################################################
 
 
@@ -25,9 +24,8 @@ def tree_grow(x, y, nmin, minleaf, nfeat):
         None, None, None))  # root node to be expanded
     return build_tree(root, x, y, nmin, minleaf, nfeat)
 
+
 # Predict labels for x-values given a single decision tree
-
-
 def tree_pred(x, tr):
     predicted_y = []  # Safe predictions here
     features = range(x.shape[1])  # Define features index
@@ -40,26 +38,25 @@ def tree_pred(x, tr):
     # Return array with predictions
     return np.array(predicted_y)
 
+
 # Grow a forest of decision trees
-
-
 def tree_grow_b(x, y, nmin, minleaf, nfeat, m):
     # Create forest of m trees
     forest = []  # Safe the trees in here
-    tester_x = None
-    #test = []
+
     for i in range(m):
-        x, y = bootstrap(x, y, len(x))  # Get bootstrapped sample
-        tree = tree_grow(x, y, nmin=nmin, minleaf=minleaf,
-                         nfeat=nfeat)  # Grow a single tree based on bootstrapped sample
+        x_temp, y_temp = bootstrap(x, y, len(x))  # Get bootstrapped sample
+        tree = tree_grow(x_temp, y_temp, nmin=nmin, minleaf=minleaf,
+                         nfeat=nfeat)
+        # Grow a single tree based on bootstrapped sample
         pred = tree_pred(x, tree)
-        # print(pred)
+
         if np.all(pred == 1):
             print('yes')
-            # test.append(tree)
+
         if np.all(pred == 0):
             print('yes')
-            # test.append(tree)
+
         forest.append(tree)
 
     return forest
@@ -81,6 +78,7 @@ def tree_pred_b(x, forest):
     # Calculate majority vote over all trees for each x value (with binary data, majority vote == average value)
     for i in range(len(tree_preds)):
         majority_vote = Counter(tree_preds[i]).most_common(1)[0][0]
+
         # Final predictions of the random forest
         predictions.append(majority_vote)
 
@@ -88,40 +86,20 @@ def tree_pred_b(x, forest):
 
 ################################################ AUXILIARY FUNCTIONS FOR TREE_GROW ###########################################################
 
+
 # The real building
-
-
 def build_tree(node, x, y, nmin, minleaf, nfeat):
-    # Base Case: stop expanding if node is pure
+    # Return the best value to split on as well as the corresponding feature (column index)
+    split, feature, gain = best_split(x, y, minleaf, nfeat)
 
-    if nfeat < x.shape[1]:  # get random subset of features of size nfeat
-        features = random.sample(range(x.shape[1]), nfeat)
-
-    else:  # Use all features
-        features = range(x.shape[1])
-
-    split, feature, gain = best_split(x, y, features, minleaf)
-
-    # if split == None, no minleaf criteria have been met
+    # When split == None, no minleaf criteria have been met
     if gain == 0 or len(x) < nmin or split == None:
         y_temp = np.reshape(y, (y.shape[0],))  # Reshape to fit counter
-        majority_class = Counter(y_temp.tolist()).most_common(1)[0][0]
-        #majority_class = y[0][0]
-        # print(majority_class)
-        # print()
-        # Get final class value, should be the same for all y in Y as node is pure. Hence, we can select the first element of y.
-
-        # does this make sense with question etc?
-
-        # TODO: Not sure if this will duplicate the same node and can't access the parent nodes to change them
-        leaf = Node("leaf " + str(majority_class), parent=node,
-                    question=Question(None, None, None))
-        leaf.question.label = majority_class
-        #node.children = [leaf]
-        #node.name = "leaf " + str(majority_class)
-        return leaf
-
-    # Return the best value to split on as well as the corresponding feature (column index)
+        counts = Counter(y_temp.tolist()).most_common()
+        majority_class = counts[0][0]
+        node.question.label = majority_class
+        node.name = 'leaf' + str(majority_class)
+        return node
 
     # Partition the data according to the best_split
     lhs_x, lhs_y, rhs_x, rhs_y, question = partition(feature, split, x, y)
@@ -129,26 +107,10 @@ def build_tree(node, x, y, nmin, minleaf, nfeat):
     lhs_y = np.reshape(lhs_y, (lhs_y.shape[0], 1))  # Reshape to fit the format
     rhs_y = np.reshape(rhs_y, (rhs_y.shape[0], 1))  # Reshape to fit the format
 
-    # Early Stopping Criteria (as provided in the assignment)
-    '''if (len(x) < nmin):
-        #print("early stopping")
-        #print(y)
-        y_temp = np.reshape(y, (y.shape[0],))  # Reshape to fit counter
-        majority_class = Counter(y_temp.tolist()).most_common(1)[0][0]
-        #print(majority_class)
-        #print()
-
-        # Create leaf node with majority class label
-        question.label = majority_class
-        leaf = Node("leaf " + str(majority_class), parent=node, question=question)
-        node.children = [leaf]
-
-        return leaf'''
-
     # Expand left and right side of tree using recursion
-    node_lhs = build_tree(Node("lhs " + str(question.feature) + " value: " + str(np.round(question.value, 3)), parent=node, question=question),
+    node_lhs = build_tree(Node("lhs " + str(question.feature) + " value: " + str(np.round(question.value, 3)), parent=node, question=Question(None, None, None)),
                           lhs_x, lhs_y, nmin, minleaf, nfeat)
-    node_rhs = build_tree(Node("rhs " + str(question.feature) + " value: " + str(np.round(question.value, 3)), parent=node, question=question),
+    node_rhs = build_tree(Node("rhs " + str(question.feature) + " value: " + str(np.round(question.value, 3)), parent=node, question=Question(None, None, None)),
                           rhs_x, rhs_y, nmin, minleaf, nfeat)
 
     node.children = [node_lhs, node_rhs]
@@ -160,12 +122,13 @@ def build_tree(node, x, y, nmin, minleaf, nfeat):
 
 # Calculate impurity using Gini-Index
 def impurity(y):
-    if len(y) > 0:
+    if len(y) > 0:  # Check if it can be divided by 0
+        # Calculate impurity
         prob1 = sum(y) / len(y)
         prob2 = 1 - prob1
         return prob1*prob2
 
-    else:
+    else:  # Otherwise return 0
         return 0
 
 
@@ -178,20 +141,20 @@ def impurity_reduction(y, lh, rh):
 
     return reduction
 
+
 # Find the split which provides highest information gain
+def best_split(x, y, minleaf, nfeat):
 
+    if nfeat < x.shape[1]:  # get random subset of features of size nfeat
+        features = random.sample(range(x.shape[1]), nfeat)
 
-def best_split(x, y, features, minleaf):
+    else:  # Use all features
+        features = range(x.shape[1])
+
     # Set default values
     best_gain = 0
-    split_feature = random.choice(features)
-    x_sorted = np.sort(np.unique(x[:, split_feature]))
-
-    if len(x_sorted) > 1:
-        best_split = random.choice((x_sorted[0:(len(x_sorted)-1)] +
-                                    x_sorted[1:len(x_sorted)])/2)
-    else:
-        best_split = x_sorted[0]
+    split_feature = None
+    best_split = None
 
     # Loop through all features to define the best feature to split on
     for feature in features:
@@ -201,6 +164,7 @@ def best_split(x, y, features, minleaf):
         # Define the splitpoints
         splitpoints = (x_sorted[0:(len(x_sorted)-1)] +
                        x_sorted[1:len(x_sorted)])/2
+
         # Calculate the impurity reduction for each split point
         for splitpoint in splitpoints:
             lh = y[column < splitpoint]
@@ -228,13 +192,7 @@ def partition(feature, split, x, y):
     # Split data into left and right hand sides
 
     lhs = x[x[:, feature] < split]
-    #np.array([instance for instance in x if instance[feature] < split])
-    #rhs = np.array([instance for instance in x if instance[feature] >= split])
     rhs = x[x[:, feature] >= split]
-    '''except:
-        print(x[:,feature])
-        print(split)
-        print(x[:,feature] < split)'''
     columns = x.shape[1]-1
 
     # Return right and left side x and y values to use for next iteration of build_tree function
@@ -242,6 +200,7 @@ def partition(feature, split, x, y):
 
 
 #################################################### AUXILIARY FUNCTIONS FOR TREE_PRED ###########################################################
+
 
 # Get the final class for a leaf node
 def get_decision(row, tr, features):
@@ -256,9 +215,6 @@ def get_decision(row, tr, features):
             return tr.question.label
 
         # Match feature with child feature
-        # for child in tr.children:
-         #   print(child.name)
-        # print()
         for feat in features:
             if (tr.question.feature == feat):
                 # If feature value >= value in question, get right hand of tree
@@ -273,18 +229,6 @@ def get_decision(row, tr, features):
             if tr.name.startswith("leaf"):
                 decision = tr.question.label
                 return int(decision)
-
-# Get child of a node
-
-
-def get_child(node, index):
-    # If node is a leaf, return node
-    return node.children[index]
-    # for child in node.children:
-    # if (child.name == child_name):
-    #    return child
-    # if  (child.name == "leaf"):
-    # return child
 
 
 # Auxiliary class to store information based on which the data was split at each iteration of build_tree
@@ -303,14 +247,13 @@ class Question:
         return val >= self.value
 
 
-################################################ AUXILIARY FUNCTION FOR RANDOM FOREST ###########################################################
+#################################################### AUXILIARY FUNCTIONS FOR TREE_PRED ###########################################################
 
 
 # Get a bootstrap sample from the data
 def bootstrap(X, Y, n_bootstraps):
     bootstrap_indices = np.random.randint(
         low=0, high=len(X), size=n_bootstraps)
-
     df_bootstrapped_x = X[bootstrap_indices]
     df_bootstrapped_y = Y[bootstrap_indices]
 
