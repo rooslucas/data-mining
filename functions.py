@@ -93,9 +93,6 @@ def tree_pred_b(x, forest):
 
 def build_tree(node, x, y, nmin, minleaf, nfeat):
     # Base Case: stop expanding if node is pure
-    # TODO: voeg beide stopping criteria
-
-    # TODO fix nonetype error!
 
     if nfeat < x.shape[1]:  # get random subset of features of size nfeat
         features = random.sample(range(x.shape[1]), nfeat)
@@ -187,8 +184,14 @@ def impurity_reduction(y, lh, rh):
 def best_split(x, y, features, minleaf):
     # Set default values
     best_gain = 0
-    split_feature = None
-    best_split = None
+    split_feature = random.choice(features)
+    x_sorted = np.sort(np.unique(x[:, split_feature]))
+
+    if len(x_sorted) > 1:
+        best_split = random.choice((x_sorted[0:(len(x_sorted)-1)] +
+                                    x_sorted[1:len(x_sorted)])/2)
+    else:
+        best_split = x_sorted[0]
 
     # Loop through all features to define the best feature to split on
     for feature in features:
