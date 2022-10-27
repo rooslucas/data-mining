@@ -22,18 +22,30 @@ Y_train = train['label']
 X_test = test.loc[:, test.columns != 'label']
 Y_test = test['label']
 
+print("Unigrams:")
+
 rf = RandomForestClassifier(
-    n_estimators=150, max_depth=8, random_state=37, max_features='sqrt')
+    n_estimators=100, max_depth=7, random_state=37, max_features='sqrt')
 rf.fit(X_train, Y_train)
-print(rf.score(X_train, Y_train))
+print(f"RF train score: {rf.score(X_train, Y_train)}")
+print(f"RF test score: {rf.score(X_test, Y_test)}")
 
 lr = LogisticRegression(C=0.615848211066026, penalty='l1',
-                        solver='liblinear', random_state=37)
+                        solver='liblinear', random_state=37, max_iter=100)
 lr.fit(X_train, Y_train)
-print(lr.score(X_train, Y_train))
+print(f"LR train score: {lr.score(X_train, Y_train)}")
+print(f"LR test score: {lr.score(X_test, Y_test)}")
 
-print(sum(Y_test))
 
-dt = DecisionTreeClassifier
-# dt.fit(X_train, Y_train)
-# print(dt.score(X_dev, Y_dev))
+dt = DecisionTreeClassifier(
+    max_depth=15, max_features='auto', min_impurity_decrease=0.001, random_state=37)
+dt.fit(X_train, Y_train)
+print(f"DT train score: {dt.score(X_train, Y_train)}")
+print(f"DT test score: {dt.score(X_test, Y_test)}")
+
+clf = MultinomialNB(alpha=0.5)
+clf.fit(X_train, Y_train)
+print(f"MB train score: {clf.score(X_train, Y_train)}")
+print(f"MB test score: {clf.score(X_test, Y_test)}")
+
+print(f"naive score: {sum(Y_test) / 100}")
