@@ -108,42 +108,52 @@ def make_predictions(model, param_grid, model_name):
     if (model == rf) or (model == dt):
         # features = cv_unigram.columns
         importances_uni = best_clf_unigram.best_estimator_._final_estimator.feature_importances_
-        indices_uni = np.argsort(importances_uni)[:10]
-        print(indices_uni)
+        indices_uni = np.argsort(importances_uni)[-10:]
+        print("Feature importance Unigram:")
+        for i in range(len(indices_uni)):
+            print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
 
-        importances_bi = best_clf_bigram.best_estimator_.feature_importances_
-        indices_bi = np.argsort(importances_bi)
-        print(indices_bi[:10])
+        importances_bi = best_clf_bigram.best_estimator_._final_estimator.feature_importances_
+        indices_bi = np.argsort(importances_bi)[-10:]
+        print("\nFeature importance Bigram:")
+        for i in range(len(indices_bi)):
+            print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
 
     elif model == lm:
         importances_uni = best_clf_unigram.best_estimator_._final_estimator.coef_
-        indices_uni = np.argsort(importances_uni)[:10]
-        print(indices_uni)
+        indices_uni = np.argsort(importances_uni)[-10:]
+        print("Feature importance Unigram:")
+        for i in range(len(indices_uni)):
+            print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
 
-        importances_bi = best_clf_bigram.best_estimator_.coef_
-        indices_bi = np.argsort(importances_bi)
-        print(indices_bi[:10])
+        importances_bi = best_clf_bigram.best_estimator_._final_estimator.coef_
+        indices_bi = np.argsort(importances_bi)[-10:]
+        print("\nFeature importance Bigram:")
+        for i in range(len(indices_bi)):
+            print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
 
     elif model == mb:
 
         importances_uni = best_clf_unigram.best_estimator_._final_estimator.feature_log_prob_
-        indices_uni = np.argsort(importances_uni)[:10]
-        print(indices_uni)
+        indices_uni = np.argsort(importances_uni)[-10:]
+        print("Feature importance Unigram:")
+        for i in range(len(indices_uni)):
+            print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
 
-        importances_bi = best_clf_bigram.best_estimator_.feature_log_prob_
-        indices_bi = np.argsort(importances_bi)
-        print(indices_bi[:10])
+        importances_bi = best_clf_bigram.best_estimator_._final_estimator.feature_log_prob_
+        indices_bi = np.argsort(importances_bi)[-10:]
+        print("\nFeature importance Bigram:")
+        for i in range(len(indices_bi)):
+            print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
 
     return best_clf_unigram, best_clf_bigram
 
 
 ############################################# Random Forest #######################################################
 rf_name = 'random forest'
-rf = RandomForestClassifier(
-    random_state=37, n_estimators=100, max_depth=7, max_features='sqrt')
-# {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
-param_grid_rf = {}
-# 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{rf_name}__max_features': ['auto', 'sqrt']}
+rf = RandomForestClassifier(random_state=37)
+param_grid_rf = {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
+    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{rf_name}__max_features': ['auto', 'sqrt']}
 
 rf_unigram, rf_bigram = make_predictions(rf, param_grid_rf, rf_name)
 
