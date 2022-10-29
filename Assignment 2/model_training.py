@@ -1,3 +1,4 @@
+from lib2to3.pgen2.pgen import DFAState
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -11,11 +12,10 @@ from copy import deepcopy
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.metrics import confusion_matrix
-
+import matplotlib.pyplot as plt
 
 # TODO tune min_df values as well to see which is the best
 # mention tfidf featur
-
 X_train = pd.read_csv('Assignment 2/train_set.csv').iloc[:, 1]
 Y_train = pd.read_csv('Assignment 2/train_labels.csv').iloc[:, 1]
 X_test = pd.read_csv('Assignment 2/test_set.csv').iloc[:, 1]
@@ -105,14 +105,45 @@ def make_predictions(model, param_grid, model_name):
     print()
     print()
 
+    if (model == rf) or (model == dt):
+        # features = cv_unigram.columns
+        importances_uni = best_clf_unigram.best_estimator_._final_estimator.feature_importances_
+        indices_uni = np.argsort(importances_uni)[:10]
+        print(indices_uni)
+
+        importances_bi = best_clf_bigram.best_estimator_.feature_importances_
+        indices_bi = np.argsort(importances_bi)
+        print(indices_bi[:10])
+
+    elif model == lm:
+        importances_uni = best_clf_unigram.best_estimator_._final_estimator.coef_
+        indices_uni = np.argsort(importances_uni)[:10]
+        print(indices_uni)
+
+        importances_bi = best_clf_bigram.best_estimator_.coef_
+        indices_bi = np.argsort(importances_bi)
+        print(indices_bi[:10])
+
+    elif model == mb:
+
+        importances_uni = best_clf_unigram.best_estimator_._final_estimator.feature_log_prob_
+        indices_uni = np.argsort(importances_uni)[:10]
+        print(indices_uni)
+
+        importances_bi = best_clf_bigram.best_estimator_.feature_log_prob_
+        indices_bi = np.argsort(importances_bi)
+        print(indices_bi[:10])
+
     return best_clf_unigram, best_clf_bigram
 
 
 ############################################# Random Forest #######################################################
 rf_name = 'random forest'
-rf = RandomForestClassifier(random_state=37)
-param_grid_rf = {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{rf_name}__max_features': ['auto', 'sqrt']}
+rf = RandomForestClassifier(
+    random_state=37, n_estimators=100, max_depth=7, max_features='sqrt')
+# {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
+param_grid_rf = {}
+# 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{rf_name}__max_features': ['auto', 'sqrt']}
 
 rf_unigram, rf_bigram = make_predictions(rf, param_grid_rf, rf_name)
 
