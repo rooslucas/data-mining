@@ -218,7 +218,7 @@ mb_unigram, mb_bigram = make_predictions(mb, param_grid_mb, mb_name)
 features = mb_unigram.best_estimator_[0].get_feature_names_out()
 importances_uni = mb_unigram.best_estimator_._final_estimator.feature_log_prob_[
     0]
-indices_uni = np.argsort(importances_uni)[:10]
+indices_uni = np.argsort(importances_uni)[-10:]
 print(np.sort(importances_uni))
 print("Feature importance Unigram:")
 
@@ -228,7 +228,7 @@ for i in range(len(indices_uni)):
 
 importances_bi = mb_bigram.best_estimator_._final_estimator.feature_log_prob_[
     1]
-indices_bi = np.argsort(importances_bi)[:10]
+indices_bi = np.argsort(importances_bi)[-10:]
 print("\nFeature importance Bigram:")
 
 for i in range(len(indices_bi)):
