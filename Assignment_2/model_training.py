@@ -124,15 +124,16 @@ def make_predictions(model, param_grid, model_name):
 
 ############################################# Random Forest #######################################################
 rf_name = 'random forest'
-rf = RandomForestClassifier(random_state=37)
-param_grid_rf = {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
-    5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{rf_name}__max_features': ['auto', 'sqrt']}
+rf = RandomForestClassifier(random_state=37, max_features='sqrt')
+# {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
+param_grid_rf = {}
+# 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}
 
 rf_unigram, rf_bigram = make_predictions(rf, param_grid_rf, rf_name)
 
 features = rf_unigram.best_estimator_[0].get_feature_names_out()
 importances_uni = rf_unigram.best_estimator_._final_estimator.feature_importances_
-indices_uni = np.argsort(importances_uni)[-10:]
+indices_uni = np.argsort(importances_uni)[:10]
 print("Feature importance Unigram:")
 
 for i in range(len(indices_uni)):
@@ -141,7 +142,7 @@ for i in range(len(indices_uni)):
 
 features_bi = rf_bigram.best_estimator_[0].get_feature_names_out()
 importances_bi = rf_bigram.best_estimator_._final_estimator.feature_importances_
-indices_bi = np.argsort(importances_bi)[-10:]
+indices_bi = np.argsort(importances_bi)[:10]
 print("\nFeature importance Bigram:")
 
 for i in range(len(indices_bi)):
@@ -157,7 +158,7 @@ param_grid_lm = {
 lm_unigram, lm_bigram = make_predictions(lm, param_grid_lm, lm_name)
 
 features = lm_unigram.best_estimator_[0].get_feature_names_out()
-importances_uni = lm_unigram.best_estimator_._final_estimator.coef_
+importances_uni = lm_unigram.best_estimator_._final_estimator.coef_[0]
 indices_uni = np.argsort(importances_uni)[-10:]
 print("Feature importance Unigram:")
 
@@ -166,7 +167,7 @@ for i in range(len(indices_uni)):
         f'{features[indices_uni][i]}, {indices_uni[i]} : {importances_uni[indices_uni[i]]} \n')
 
 features_bi = lm_bigram.best_estimator_[0].get_feature_names_out()
-importances_bi = lm_bigram.best_estimator_._final_estimator.coef_
+importances_bi = lm_bigram.best_estimator_._final_estimator.coef_[0]
 indices_bi = np.argsort(importances_bi)[-10:]
 print("\nFeature importance Bigram:")
 
@@ -178,13 +179,14 @@ for i in range(len(indices_bi)):
 dt_name = 'decision tree'
 dt = DecisionTreeClassifier(random_state=37)
 param_grid_dt = {f'{dt_name}__max_depth': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{dt_name}__min_impurity_decrease': [
-    0.0, 0.001, 0.005, 0.01, 0.015, 0.02], f'{dt_name}__max_features': ['auto', 'sqrt']}
+    0.0, 0.001, 0.005, 0.01, 0.015, 0.02]}
 
 dt_unigram, dt_bigram = make_predictions(dt, param_grid_dt, dt_name)
 
 features = dt_unigram.best_estimator_[0].get_feature_names_out()
 importances_uni = dt_unigram.best_estimator_._final_estimator.feature_importances_
 indices_uni = np.argsort(importances_uni)[-10:]
+print(np.sort(importances_uni))
 print("Feature importance Unigram:")
 
 for i in range(len(indices_uni)):
@@ -204,13 +206,14 @@ for i in range(len(indices_bi)):
 
 mb_name = 'naive bayes'
 mb = MultinomialNB()
-param_grid_mb = {f'{mb_name}__alpha': [0.4]}  # , 0.5, 0.6, 0.7, 0.8, 1.0]}
+param_grid_mb = {f'{mb_name}__alpha': [0.4, 0.5, 0.6, 0.7, 0.8, 1.0]}
 mb_unigram, mb_bigram = make_predictions(mb, param_grid_mb, mb_name)
 
 features = mb_unigram.best_estimator_[0].get_feature_names_out()
 importances_uni = mb_unigram.best_estimator_._final_estimator.feature_log_prob_[
-    1]
-indices_uni = np.argsort(importances_uni)[-10:]
+    0]
+indices_uni = np.argsort(importances_uni)[:10]
+print(np.sort(importances_uni))
 print("Feature importance Unigram:")
 
 for i in range(len(indices_uni)):
