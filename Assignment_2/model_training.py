@@ -24,13 +24,16 @@ Y_test = pd.read_csv('Assignment 2/test_labels.csv').iloc[:, 1]
 cv_unigram = CountVectorizer(lowercase=True, ngram_range=(1, 1))
 cv_bigram = CountVectorizer(lowercase=True, ngram_range=(1, 2))
 
-
+df = pd.DataFrame()
+df['true_label'] = Y_test
 # NOTE: removing stopwords seems to decrease performance!!!!!
 
 # TODO cache values to speed up grid search!
 
 # Function for confusion matrix
-def display_confusion_matrix(y_true, y_pred):
+
+
+def display_confusion_matrix(y_true, y_pred, model, grams):
     # Display confusion matrix
     tn, fp, fn, tp = confusion_matrix(
         y_true, y_pred).ravel()
@@ -50,6 +53,16 @@ def display_confusion_matrix(y_true, y_pred):
 
     # print(f'\nPPV: {PPV_1}')
     # print(f'NPV: {NPV_1}')
+    if model == rf:
+        name = 'rf_' + grams
+    elif model == lm:
+        name = 'lr_' + grams
+    elif model == dt:
+        name = 'dt_' + grams
+    elif model == mb:
+        name = 'mb_' + grams
+
+    df[name] = y_pred
 
 
 def make_predictions(model, param_grid, model_name):
@@ -59,14 +72,14 @@ def make_predictions(model, param_grid, model_name):
     param_grid_bigram = deepcopy(param_grid)
 
     # add hyperparameters for countvectorizers
-    param_grid_unigram.update(
-        {'cv_unigram__min_df': [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]})
-    param_grid_bigram.update(
-        {'cv_bigram__min_df': [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]})
+    param_grid_unigram.update({'cv_unigram__min_df': [0.01, 0.02, 0.03, 0.06]})
+    # [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]})
+    param_grid_bigram.update({'cv_bigram__min_df': [0.01, 0.02, 0.03, 0.06]})
+    # [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]})
 
     # add hyperparameters for best k mutual info features
-    #param_grid_unigram.update({'best_mutual_info__k': [150, 200, 250, 300, 350]})
-    #param_grid_bigram.update({'best_mutual_info__k': [150, 200, 250, 300, 350]})
+    # param_grid_unigram.update({'best_mutual_info__k': [150, 200, 250, 300, 350]})
+    # param_grid_bigram.update({'best_mutual_info__k': [150, 200, 250, 300, 350]})
 
     # pipeline_unigram = Pipeline([('cv_unigram', cv_unigram), ('best_mutual_info', SelectKBest(mutual_info_classif))\
     #                              , (model_name, model)])
@@ -92,7 +105,7 @@ def make_predictions(model, param_grid, model_name):
     print(best_clf_unigram.best_estimator_)
     print(best_clf_unigram.best_params_)
     y_pred = best_clf_unigram.predict(X_test)
-    display_confusion_matrix(Y_test, y_pred)
+    display_confusion_matrix(Y_test, y_pred, model, 'uni')
     print()
 
     best_clf_bigram = clf_bigram.fit(X_train, Y_train)
@@ -101,23 +114,9 @@ def make_predictions(model, param_grid, model_name):
     print(best_clf_bigram.best_estimator_)
     print(best_clf_bigram.best_params_)
     y_pred = best_clf_bigram.predict(X_test)
-    display_confusion_matrix(Y_test, y_pred)
+    display_confusion_matrix(Y_test, y_pred, model, 'bi')
     print()
     print()
-
-    # elif model == lm:
-    #     # features = best_clf_bigram.best_estimator_._final_estimator
-    #     importances_uni = best_clf_unigram.best_estimator_._final_estimator.coef_
-    #     indices_uni = np.argsort(importances_uni)[-10:]
-    #     print("Feature importance Unigram:")
-    #     for i in range(len(indices_uni)):
-    #         print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
-
-    #     importances_bi = best_clf_bigram.best_estimator_._final_estimator.coef_
-    #     indices_bi = np.argsort(importances_bi)[-10:]
-    #     print("\nFeature importance Bigram:")
-    #     for i in range(len(indices_bi)):
-    #         print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
 
     return best_clf_unigram, best_clf_bigram
 
@@ -125,11 +124,13 @@ def make_predictions(model, param_grid, model_name):
 ############################################# Random Forest #######################################################
 rf_name = 'random forest'
 rf = RandomForestClassifier(random_state=37, max_features='sqrt')
-# {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [
-param_grid_rf = {}
-# 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}
+param_grid_rf = {f'{rf_name}__n_estimators': [
+    250, 400], f'{rf_name}__max_depth': [8, 15]}
+
+# param_grid_rf = {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{rf_name}__max_depth': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}
 
 rf_unigram, rf_bigram = make_predictions(rf, param_grid_rf, rf_name)
+
 
 features = rf_unigram.best_estimator_[0].get_feature_names_out()
 importances_uni = rf_unigram.best_estimator_._final_estimator.feature_importances_
@@ -149,11 +150,13 @@ for i in range(len(indices_bi)):
     print(
         f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
 
-##################################################### Logstic Regression ######################################################
+# ##################################################### Logstic Regression ######################################################
 lm_name = 'logistic regression'
 lm = LogisticRegression(penalty='l1', solver='liblinear', random_state=37)
 param_grid_lm = {
-    f'{lm_name}__C': np.logspace(-4, 4, 20), f'{lm_name}__max_iter': [100, 1000, 2500]}
+    f'{lm_name}__C': [0.615848211066026], f'{lm_name}__max_iter': [100]}
+# param_grid_lm = {
+#     f'{lm_name}__C': np.logspace(-4, 4, 20), f'{lm_name}__max_iter': [100, 1000, 2500]}
 
 lm_unigram, lm_bigram = make_predictions(lm, param_grid_lm, lm_name)
 
@@ -175,11 +178,13 @@ for i in range(len(indices_bi)):
     print(
         f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
 
-##################################################### Decision Tree ###########################################################
+# ##################################################### Decision Tree ###########################################################
 dt_name = 'decision tree'
 dt = DecisionTreeClassifier(random_state=37)
-param_grid_dt = {f'{dt_name}__max_depth': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{dt_name}__min_impurity_decrease': [
-    0.0, 0.001, 0.005, 0.01, 0.015, 0.02]}
+param_grid_dt = {f'{dt_name}__max_depth': [
+    8], f'{dt_name}__min_impurity_decrease': [0.0]}
+# param_grid_dt = {f'{dt_name}__max_depth': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], f'{dt_name}__min_impurity_decrease': [
+#     0.0, 0.001, 0.005, 0.01, 0.015, 0.02]}
 
 dt_unigram, dt_bigram = make_predictions(dt, param_grid_dt, dt_name)
 
@@ -206,7 +211,8 @@ for i in range(len(indices_bi)):
 
 mb_name = 'naive bayes'
 mb = MultinomialNB()
-param_grid_mb = {f'{mb_name}__alpha': [0.4, 0.5, 0.6, 0.7, 0.8, 1.0]}
+# [0.4, 0.5, 0.6, 0.7, 0.8, 1.0]}
+param_grid_mb = {f'{mb_name}__alpha': [0.8, 1.0]}
 mb_unigram, mb_bigram = make_predictions(mb, param_grid_mb, mb_name)
 
 features = mb_unigram.best_estimator_[0].get_feature_names_out()
@@ -222,10 +228,12 @@ for i in range(len(indices_uni)):
 
 importances_bi = mb_bigram.best_estimator_._final_estimator.feature_log_prob_[
     1]
-indices_bi = np.argsort(importances_bi)[-10:]
+indices_bi = np.argsort(importances_bi)[:10]
 print("\nFeature importance Bigram:")
 
 for i in range(len(indices_bi)):
     features_bi = mb_bigram.best_estimator_[0].get_feature_names_out()
     print(
         f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
+
+df.to_csv('results_2.csv', index=False)
