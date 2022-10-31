@@ -105,46 +105,19 @@ def make_predictions(model, param_grid, model_name):
     print()
     print()
 
-    if (model == rf) or (model == dt):
-        # features = cv_unigram.columns
-        importances_uni = best_clf_unigram.best_estimator_._final_estimator.feature_importances_
-        indices_uni = np.argsort(importances_uni)[-10:]
-        print("Feature importance Unigram:")
-        for i in range(len(indices_uni)):
-            print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
+    # elif model == lm:
+    #     # features = best_clf_bigram.best_estimator_._final_estimator
+    #     importances_uni = best_clf_unigram.best_estimator_._final_estimator.coef_
+    #     indices_uni = np.argsort(importances_uni)[-10:]
+    #     print("Feature importance Unigram:")
+    #     for i in range(len(indices_uni)):
+    #         print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
 
-        importances_bi = best_clf_bigram.best_estimator_._final_estimator.feature_importances_
-        indices_bi = np.argsort(importances_bi)[-10:]
-        print("\nFeature importance Bigram:")
-        for i in range(len(indices_bi)):
-            print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
-
-    elif model == lm:
-        importances_uni = best_clf_unigram.best_estimator_._final_estimator.coef_
-        indices_uni = np.argsort(importances_uni)[-10:]
-        print("Feature importance Unigram:")
-        for i in range(len(indices_uni)):
-            print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
-
-        importances_bi = best_clf_bigram.best_estimator_._final_estimator.coef_
-        indices_bi = np.argsort(importances_bi)[-10:]
-        print("\nFeature importance Bigram:")
-        for i in range(len(indices_bi)):
-            print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
-
-    elif model == mb:
-
-        importances_uni = best_clf_unigram.best_estimator_._final_estimator.feature_log_prob_
-        indices_uni = np.argsort(importances_uni)[-10:]
-        print("Feature importance Unigram:")
-        for i in range(len(indices_uni)):
-            print(f'{indices_uni[i]} : {importances_uni[indices_uni][i]}')
-
-        importances_bi = best_clf_bigram.best_estimator_._final_estimator.feature_log_prob_
-        indices_bi = np.argsort(importances_bi)[-10:]
-        print("\nFeature importance Bigram:")
-        for i in range(len(indices_bi)):
-            print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
+    #     importances_bi = best_clf_bigram.best_estimator_._final_estimator.coef_
+    #     indices_bi = np.argsort(importances_bi)[-10:]
+    #     print("\nFeature importance Bigram:")
+    #     for i in range(len(indices_bi)):
+    #         print(f'{indices_bi[i]} : {importances_bi[indices_bi][i]}')
 
     return best_clf_unigram, best_clf_bigram
 
@@ -157,13 +130,49 @@ param_grid_rf = {f'{rf_name}__n_estimators': [100, 150, 200, 250, 300, 400], f'{
 
 rf_unigram, rf_bigram = make_predictions(rf, param_grid_rf, rf_name)
 
-##################################################### Logstic Regression ####################################################
+features = rf_unigram.best_estimator_[0].get_feature_names_out()
+importances_uni = rf_unigram.best_estimator_._final_estimator.feature_importances_
+indices_uni = np.argsort(importances_uni)[-10:]
+print("Feature importance Unigram:")
+
+for i in range(len(indices_uni)):
+    print(
+        f'{features[indices_uni][i]}, {indices_uni[i]} : {importances_uni[indices_uni[i]]} \n')
+
+features_bi = rf_bigram.best_estimator_[0].get_feature_names_out()
+importances_bi = rf_bigram.best_estimator_._final_estimator.feature_importances_
+indices_bi = np.argsort(importances_bi)[-10:]
+print("\nFeature importance Bigram:")
+
+for i in range(len(indices_bi)):
+    print(
+        f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
+
+##################################################### Logstic Regression ######################################################
 lm_name = 'logistic regression'
 lm = LogisticRegression(penalty='l1', solver='liblinear', random_state=37)
 param_grid_lm = {
     f'{lm_name}__C': np.logspace(-4, 4, 20), f'{lm_name}__max_iter': [100, 1000, 2500]}
 
 lm_unigram, lm_bigram = make_predictions(lm, param_grid_lm, lm_name)
+
+features = lm_unigram.best_estimator_[0].get_feature_names_out()
+importances_uni = lm_unigram.best_estimator_._final_estimator.coef_
+indices_uni = np.argsort(importances_uni)[-10:]
+print("Feature importance Unigram:")
+
+for i in range(len(indices_uni)):
+    print(
+        f'{features[indices_uni][i]}, {indices_uni[i]} : {importances_uni[indices_uni[i]]} \n')
+
+features_bi = lm_bigram.best_estimator_[0].get_feature_names_out()
+importances_bi = lm_bigram.best_estimator_._final_estimator.coef_
+indices_bi = np.argsort(importances_bi)[-10:]
+print("\nFeature importance Bigram:")
+
+for i in range(len(indices_bi)):
+    print(
+        f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
 
 ##################################################### Decision Tree ###########################################################
 dt_name = 'decision tree'
@@ -173,8 +182,47 @@ param_grid_dt = {f'{dt_name}__max_depth': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 
 dt_unigram, dt_bigram = make_predictions(dt, param_grid_dt, dt_name)
 
-######################################################### Naive Bayes #############################################
+features = dt_unigram.best_estimator_[0].get_feature_names_out()
+importances_uni = dt_unigram.best_estimator_._final_estimator.feature_importances_
+indices_uni = np.argsort(importances_uni)[-10:]
+print("Feature importance Unigram:")
+
+for i in range(len(indices_uni)):
+    print(
+        f'{features[indices_uni][i]}, {indices_uni[i]} : {importances_uni[indices_uni[i]]} \n')
+
+features_bi = dt_bigram.best_estimator_[0].get_feature_names_out()
+importances_bi = dt_bigram.best_estimator_._final_estimator.feature_importances_
+indices_bi = np.argsort(importances_bi)[-10:]
+print("\nFeature importance Bigram:")
+
+for i in range(len(indices_bi)):
+    print(
+        f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
+
+######################################################### Naive Bayes #######################################################
+
 mb_name = 'naive bayes'
 mb = MultinomialNB()
-param_grid_mb = {f'{mb_name}__alpha': [0.4, 0.5, 0.6, 0.7, 0.8, 1.0]}
+param_grid_mb = {f'{mb_name}__alpha': [0.4]}  # , 0.5, 0.6, 0.7, 0.8, 1.0]}
 mb_unigram, mb_bigram = make_predictions(mb, param_grid_mb, mb_name)
+
+features = mb_unigram.best_estimator_[0].get_feature_names_out()
+importances_uni = mb_unigram.best_estimator_._final_estimator.feature_log_prob_[
+    1]
+indices_uni = np.argsort(importances_uni)[-10:]
+print("Feature importance Unigram:")
+
+for i in range(len(indices_uni)):
+    print(
+        f'{features[indices_uni][i]}, {indices_uni[i]} : {importances_uni[indices_uni[i]]} \n')
+
+importances_bi = mb_bigram.best_estimator_._final_estimator.feature_log_prob_[
+    1]
+indices_bi = np.argsort(importances_bi)[-10:]
+print("\nFeature importance Bigram:")
+
+for i in range(len(indices_bi)):
+    features_bi = mb_bigram.best_estimator_[0].get_feature_names_out()
+    print(
+        f'{features_bi[indices_bi][i]}, {indices_bi[i]} : {importances_bi[indices_bi[i]]} \n')
